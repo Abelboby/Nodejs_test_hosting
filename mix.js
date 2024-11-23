@@ -1,7 +1,6 @@
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const bodyParser = require('body-parser');
-const qrcode = require('qrcode-terminal');
 const { execSync } = require('child_process');
 const path = require('path');
 
@@ -101,7 +100,6 @@ function setupEventHandlers() {
             try {
                 pairingCode = await client.requestPairingCode("916238261633", false);
                 console.log('Pairing code received:', pairingCode);
-                qrcode.generate(qr, { small: true });
             } catch (error) {
                 console.error('Error generating pairing code:', error);
             }
@@ -351,7 +349,7 @@ process.on('SIGINT', async () => {
 
 
 // Initialize client and start server
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 const startServer = async () => {
     try {
