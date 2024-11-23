@@ -1,3 +1,5 @@
-.wwebjs_cache
 .wwebjs_auth
 node_modules
+.env
+.wwebjs_cache
+remote.js
