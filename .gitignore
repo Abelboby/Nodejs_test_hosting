@@ -4,3 +4,6 @@ node_modules
 .wwebjs_cache
 remote.js
 apitest.js
+groupid.js
+post.js
+send_post.py
