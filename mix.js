@@ -311,11 +311,44 @@ app.post('/mention-users', async (req, res) => {
 });
 
 // Graceful shutdown handling
+// process.on('SIGTERM', async () => {
+//     console.log('SIGTERM received. Closing server...');
+//     await client.destroy();
+//     process.exit(0);
+// });
 process.on('SIGTERM', async () => {
-    console.log('SIGTERM received. Closing server...');
-    await client.destroy();
-    process.exit(0);
+    console.log('SIGTERM received. Attempting reinitialization...');
+    try {
+        // Use the existing clearCacheAndReinitialize function
+        const success = await clearCacheAndReinitialize();
+        
+        if (success) {
+            console.log('Server successfully reinitialized after SIGTERM');
+        } else {
+            console.error('Failed to reinitialize after SIGTERM, but keeping server alive');
+        }
+    } catch (error) {
+        console.error('Error during SIGTERM reinitialization:', error);
+        // Even if reinitialization fails, we don't exit
+    }
 });
+
+// Add a SIGINT handler as well for Ctrl+C
+process.on('SIGINT', async () => {
+    console.log('SIGINT received. Attempting reinitialization...');
+    try {
+        const success = await clearCacheAndReinitialize();
+        
+        if (success) {
+            console.log('Server successfully reinitialized after SIGINT');
+        } else {
+            console.error('Failed to reinitialize after SIGINT, but keeping server alive');
+        }
+    } catch (error) {
+        console.error('Error during SIGINT reinitialization:', error);
+    }
+});
+
 
 // Initialize client and start server
 const PORT = process.env.PORT || 3000;
