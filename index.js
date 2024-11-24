@@ -83,11 +83,24 @@ const initializeClient = async () => {
 async function reinitializeClient() {
     try {
         console.log('Starting client reinitialization...');
+         // Store admin number for later use since we'll destroy the client
+         const adminNumber = ADMIN_NUMBER;
         
+         // Track if we had an existing client
+         const hadExistingClient = !!client;
         // Destroy existing client if it exists
         if (client) {
             console.log('Destroying existing client...');
-            await client.destroy();
+            try {
+                // Try to send a final message before destroying
+                await client.sendMessage(adminNumber, 'Starting reinitialization process...')
+                    .catch(err => console.log('Could not send pre-destroy message:', err));
+                    
+                await client.destroy();
+            } catch (destroyError) {
+                console.error('Error destroying client:', destroyError);
+                // Continue with reinitialization even if destroy fails
+            }
         }
 
         clearCache();
@@ -97,8 +110,41 @@ async function reinitializeClient() {
         pairingCode = null;
         connectionRetryCount = 0;
 
-        // Initialize new client
-        return await initializeClient();
+        const success = await initializeClient();
+        
+        if (success) {
+            // Wait for client to be fully ready before sending confirmation
+            await new Promise((resolve) => {
+                const checkReady = () => {
+                    if (isReady) {
+                        resolve();
+                    } else {
+                        setTimeout(checkReady, 1000);
+                    }
+                };
+                checkReady();
+            });
+
+            // Only try to send confirmation if we had an existing client before
+            if (hadExistingClient) {
+                try {
+                    await client.sendMessage(adminNumber, 'Client reinitialized successfully');
+                } catch (messageError) {
+                    console.error('Error sending success message:', messageError);
+                }
+            }
+        } else {
+            // Only try to send failure message if we had an existing client before
+            if (hadExistingClient) {
+                try {
+                    await client.sendMessage(adminNumber, 'Failed to reinitialize client');
+                } catch (messageError) {
+                    console.error('Error sending failure message:', messageError);
+                }
+            }
+        }
+
+        return success;
     } catch (error) {
         console.error('Error during reinitialization:', error);
         return false;
@@ -269,7 +315,7 @@ app.post('/mention-users', async (req, res) => {
 
         const now = Date.now();
         const lastRequest = mentionRateLimit.get(groupId) || 0;
-        if (now - lastRequest < 5000) {
+        if (now - lastRequest < 1000) {
             return res.status(429).json({ 
                 success: false, 
                 message: 'Please wait before sending another mention request' 
